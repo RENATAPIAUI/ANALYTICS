@@ -1,0 +1,20 @@
+CREATE EXTERNAL TABLE xx-xxx-corp.xx_xx_ESTUDO_MERCADO.TB_SENDJOBS
+(
+JOBID STRING,
+EMAILID STRING,
+DELIVEREDTIME STRING,
+EVENTID STRING,
+EMAILNAME STRING,
+EMAILSUBJECT STRING,
+CATEGORY STRING,
+CREATEDDATE STRING
+)
+OPTIONS(
+encoding = 'UTF-8',
+uris = ["gs://xx-xx-crm/crm_xx_sendjobs/*.csv"],
+format = "CSV",
+field_delimiter = "|",
+ignore_unknown_values = TRUE,
+max_bad_records = 10000000000,
+skip_leading_rows = 1
+)
