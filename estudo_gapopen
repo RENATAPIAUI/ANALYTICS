@@ -1,0 +1,45 @@
+CREATE VIEW xx-xxx-prd.estudos.vw_engajamento_dias as
+
+SELECT DISTINCT 
+     tema
+    , perfil
+    , upper(trim(e.subscriberkey)) as ID_IMPACTADO
+    , date_diff (SAFE.parse_datetime('%m/%d/%Y %I:%M:%S %p', a.eventdate),SAFE.parse_datetime('%m/%d/%Y %I:%M:%S %p', e.eventdate), day) as Gap_Open
+    ,CASE
+        when SAFE.parse_datetime('%m/%d/%Y %I:%M:%S %p', e.eventdate) is not null then parse_datetime('%m/%d/%Y %I:%M:%S %p', e.eventdate)
+        when SAFE.parse_datetime('%m/%d/%Y %H:%M:%S', e.eventdate) is not null then parse_datetime('%m/%d/%Y %H:%M:%S' , e.eventdate)
+        ELSE date('2030-01-01') END as data_disparo
+    ,CASE
+        when SAFE.parse_datetime('%m/%d/%Y %I:%M:%S %p', a.eventdate) is not null then parse_datetime('%m/%d/%Y %I:%M:%S %p', a.eventdate)
+        when SAFE.parse_datetime('%m/%d/%Y %H:%M:%S', a.eventdate) is not null then parse_datetime('%m/%d/%Y %H:%M:%S' , a.eventdate)
+        ELSE date('2030-01-01') END as data_abertura
+    , CASE
+        WHEN e.emailaddress is not null THEN '1'
+        ELSE '0' END as envios
+    , CASE
+        WHEN b.emailaddress is null THEN '1'
+        ELSE '0' END as entrega
+    , CASE
+        WHEN a.emailaddress is not null THEN '1'
+        ELSE '0' END as abertura
+
+FROM `xx-xxx-prd.crm.emails_envios` e
+    
+    LEFT JOIN `xx-xxx-prd.crm.emails_disparos` d
+    ON concat(e.clientid,e.sendid) = concat(d.clientid,d.sendid)
+
+    
+    JOIN `xx-xx-prd.crm.mailings_campanhas` ml 
+    ON d.emailname = ml.id_campanha_sfmc
+
+    LEFT JOIN `xx-xxx-prd.crm.emails_aberturas` a
+    ON concat(e.SubscriberKey,e.SendID) = concat(a.SubscriberKey,a.SendID)
+        
+    LEFT JOIN `xx-xxx-prd.crm.emails_cliques` c
+    ON concat(a.SubscriberKey,a.SendID) = concat(c.SubscriberKey,c.SendID)
+
+    LEFT JOIN `xx-xxx-prd.crm.emails_optouts` o
+    ON concat(e.SubscriberKey,e.SendID) = concat(o.SubscriberKey,o.SendID)
+
+    LEFT JOIN `xx-xxx-prd.crm.emails_bounces` b
+    ON concat(e.SubscriberKey,e.SendID) = concat(b.SubscriberKey,b.SendID)
