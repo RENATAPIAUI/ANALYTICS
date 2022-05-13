@@ -1,0 +1,84 @@
+SELECT
+    format_date('%d/%m/%Y', data_disparo) as data_disparo
+    , campanha
+    , perfil
+    , publico
+    , envios
+    , envios - bounces as entregas
+    , cast((envios-bounces)*1000/ envios as int)/10 as _entregas
+    , aberturas
+    , cast((aberturas)*1000/ (envios-bounces) as int)/10 as _aberturas
+    , cliques
+    , cast((cliques)*1000/ (envios-bounces) as int)/10 as _ctr
+    , CASE
+        WHEN cast(aberturas as string) not like '0' THEN cast((cliques)*1000/ aberturas as int)/10
+        ELSE 0
+    END as _ctor
+    , bounces
+    , cast((bounces)*10000/ (envios) as int)/100 as _bounces
+    , optouts
+    , cast((optouts)*10000/ (envios-bounces) as int)/100 as _optouts
+    , tema
+    , id_campanha
+
+FROM
+(
+    SELECT
+        d.emailname as id_campanha
+        , ml.campanha
+        , ml.perfil
+        , ml.publico
+        , ml.tema
+        , min(
+            CASE
+                when SAFE.parse_datetime('%m/%d/%Y %I:%M:%S %p', e.eventdate) is not null then parse_datetime('%m/%d/%Y %I:%M:%S %p', e.eventdate)
+                when SAFE.parse_datetime('%m/%d/%Y %H:%M:%S', e.eventdate) is not null then parse_datetime('%m/%d/%Y %H:%M:%S' , e.eventdate)
+            ELSE date('2030-01-01') END 
+        ) as data_disparo
+        , count(distinct(e.emailaddress)) as envios
+        , count(distinct(a.emailaddress)) as aberturas
+        , count(distinct(c.emailaddress)) as cliques
+        , count(distinct(b.emailaddress)) as bounces
+        , count(distinct(o.emailaddress)) as optouts
+
+    FROM `xx-xxx-prd.crm.emails_envios` e
+    
+        LEFT JOIN `xx-xxx-prd.crm.mails_disparos` d
+        ON concat(e.clientid,e.sendid) = concat(d.clientid,d.sendid)
+
+        JOIN `xx-xxx-prd.crm.crm_mailings_campanhas` ml 
+        ON d.emailname = ml.id_campanha_sfmc
+
+        LEFT JOIN `xx-xxx-prd.crm.emails_aberturas` a
+        ON concat(e.SubscriberKey,e.SendID) = concat(a.SubscriberKey,a.SendID)
+
+        LEFT JOIN `xx-xxx-prd.crm.emails_cliques` c
+        ON concat(a.SubscriberKey,a.SendID) = concat(c.SubscriberKey,c.SendID)
+
+        LEFT JOIN `xx-xxx-prd.crm.emails_optouts` o
+        ON concat(e.SubscriberKey,e.SendID) = concat(o.SubscriberKey,o.SendID)
+
+        LEFT JOIN `xx-xxx-prd.crm.emails_bounces` b
+        ON concat(e.SubscriberKey,e.SendID) = concat(b.SubscriberKey,b.SendID)
+
+
+    GROUP BY 1,2,3,4,5,6
+
+)
+
+WHERE 
+    data_disparo >= date('2021-06-14')
+    AND data_disparo < date('2021-07-04') 
+
+GROUP BY
+    format_date('%d/%m/%Y', data_disparo)
+    , campanha
+    , perfil
+    , publico
+    , envios
+    , aberturas
+    , cliques
+    , bounces
+    , optouts
+    , tema
+    , id_campanha
